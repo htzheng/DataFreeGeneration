@@ -11,6 +11,8 @@ scripts/matlab/TRAIN.mat
 scripts/Compare_results/*
 scripts/experiment/*
 scripts/matlab/*
+
+ResNet50_IN/checkpoints/*
 !*/.gitkeep
 
 
