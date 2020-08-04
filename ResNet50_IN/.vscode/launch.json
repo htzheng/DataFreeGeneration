@@ -18,7 +18,9 @@
                 "/home/haitian/Dropbox/DataFreeGeneration/datasets/ImageNet",
                 "--gpu", "0",
                 "--pretrained",
-                "--arch", "resnet50"
+                // "--arch", "resnet50"
+                "--arch", "resnet50_in",
+                "--batch-size", "64"
             ]
         }
     ]

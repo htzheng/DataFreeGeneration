@@ -12,15 +12,20 @@ import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 import torch.optim
 import torch.multiprocessing as mp
+from torch.serialization import save
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
+from resnet_in import resnet50 as resnet50_in
+
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
     and callable(models.__dict__[name]))
+
+model_names.append('resnet50_in')
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 parser.add_argument('data', metavar='DIR',
@@ -144,7 +149,8 @@ def main_worker(gpu, ngpus_per_node, args):
     if args.arch=='resnet50':
         model = models.resnet50(pretrained=True)
     elif args.arch=='resnet50_in':
-        model = models.resnet50(pretrained=True)
+        # model = resnet50_in(pretrained=True)
+        model = resnet50_in(pretrained=False)
 
     if not torch.cuda.is_available():
         print('using CPU, this will be slow')
@@ -182,6 +188,10 @@ def main_worker(gpu, ngpus_per_node, args):
 
     # optimizer = torch.optim.SGD(model.parameters(), args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0, amsgrad=False)
+
+    # step 
+    # scheduler = LambdaLR(optimizer, lr_lambda=[lambda1, lambda2])
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1, last_epoch=-1)
 
     # optionally resume from a checkpoint
     if args.resume:
@@ -268,10 +278,17 @@ def main_worker(gpu, ngpus_per_node, args):
                 'state_dict': model.state_dict(),
                 'best_acc1': best_acc1,
                 'optimizer' : optimizer.state_dict(),
-            }, is_best)
+            }, is_best, root=save_path)
+
+        # adjust learning rate
+        scheduler.step()
 
 
 def train(train_loader, model, criterion, optimizer, epoch, args):
+
+    for param_group in optimizer.param_groups:
+        lr = param_group['lr']
+
     batch_time = AverageMeter('Time', ':6.3f')
     data_time = AverageMeter('Data', ':6.3f')
     losses = AverageMeter('Loss', ':.4e')
@@ -279,7 +296,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
     top5 = AverageMeter('Acc@5', ':6.2f')
     progress = ProgressMeter(
         len(train_loader),
-        [batch_time, data_time, losses, top1, top5],
+        [lr, batch_time, data_time, losses, top1, top5],
         prefix="Epoch: [{}]".format(epoch))
 
     # switch to train mode
@@ -362,12 +379,10 @@ def validate(val_loader, model, criterion, args):
 
     return top1.avg
 
-
-def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
-    torch.save(state, filename)
+def save_checkpoint(state, is_best, filename='checkpoint.pth.tar', root='./'):
+    torch.save(state, os.path.join(root, filename))
     if is_best:
-        shutil.copyfile(filename, 'model_best.pth.tar')
-
+        shutil.copyfile(os.path.join(root,filename), os.path.join(root,'model_best.pth.tar'))
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
