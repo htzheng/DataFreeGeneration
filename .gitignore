@@ -13,6 +13,7 @@ scripts/experiment/*
 scripts/matlab/*
 
 ResNet50_IN/checkpoints/*
+DeepInversion/checkpoints/*
 !*/.gitkeep
 
 
