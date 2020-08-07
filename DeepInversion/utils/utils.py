@@ -104,6 +104,29 @@ def mom_cosine_policy(base_beta, warmup_length, epochs):
 
     return beta_policy(_beta_fn)
 
+mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
+std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+mean_cuda = torch.tensor(mean).cuda().view((1,3,1,1))
+std_cuda = torch.tensor(std).cuda().view((1,3,1,1))
+mean_cuda_fp16 = mean_cuda.half()
+std_cuda_fp16 = std_cuda.half()
+
+
+def gan_normalization(vgg_tensor, use_fp16=False):
+    '''
+    adjust the input based on mean and variance
+    vgg = (input - mean)/std
+    input = vgg*std+mean [0-1]
+    input_gan = input*2-1
+
+    '''
+    if use_fp16:
+        input_tensor = vgg_tensor*std_cuda_fp16+mean_cuda_fp16
+        gan_tensor = input_tensor*2.-1.
+    else:
+        input_tensor = vgg_tensor*std_cuda+mean_cuda
+        gan_tensor = input_tensor*2.-1.
+    return gan_tensor
 
 def clip(image_tensor, use_fp16=False):
     '''

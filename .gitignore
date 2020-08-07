@@ -3,7 +3,7 @@ DeepInversion/example_logs/*
 DeepInversion/final_images/*
 DeepInversion/generations/*
 DeepInversion/external/ResNet50_IN/checkpoints/*
-DeepInversion/external/BigGAN-PyTorch/weights/*
+DeepInversion/external/BigGANPyTorch/weights/*
 !*/.gitkeep
 
 

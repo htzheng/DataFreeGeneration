@@ -1,0 +1,35 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "imagenet_inversion.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                // "--bs=42",
+                "--bs=4",
+                "--do_flip",
+                "--exp_name=rn50_inversion",
+                "--r_feature=0.01",
+                // "--arch_name=resnet50",
+                "--arch_name=resnet50_in",
+                // "--verifier",
+                "--adi_scale=0.0", 
+                "--setting_id=0",
+                // "--lr","0.25",
+                "--lr","0.1",
+                // "--fp16",
+                // "--biggan_d_prior", "--exp_name=rn50_inversion_D0.001", "--biggan_d_scale", "0.001",
+                // "--biggan_d_prior", "--exp_name=rn50_inversion_D0.01", "--biggan_d_scale", "0.01",
+                // "--biggan_d_prior", "--exp_name=rn50_inversion_D0.1", "--biggan_d_scale", "0.1",
+            ]
+        }
+    ]
+    // python imagenet_inversion.py --bs=84 --do_flip --exp_name="rn50_inversion" --r_feature=0.01 --arch_name="resnet50" --verifier --adi_scale=0.0 --setting_id=0 --lr 0.25
+}

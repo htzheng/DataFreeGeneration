@@ -24,8 +24,13 @@ from torchvision import datasets, transforms
 import numpy as np
 from apex import amp
 import os
-import torchvision.models as models
+# import torchvision.models as models
+import resnet as models
+from external.ResNet50_IN.resnet_in import resnet50 as resnet50_in
+
 from utils.utils import load_model_pytorch, distributed_is_initialized
+
+
 
 random.seed(0)
 
@@ -62,9 +67,25 @@ def run(args):
     if args.arch_name == "resnet50v15":
         from models.resnetv15 import build_resnet
         net = build_resnet("resnet50", "classic")
+    elif args.arch_name == 'resnet50_in':
+        import pickle
+        print("load resnet_in model")
+        net = resnet50_in()
+        loc = 'cuda:{}'.format(0)
+        checkpoint = "./external/ResNet50_IN/checkpoints/resnet50_in_12cbackup/model_best.pth.tar"
+        loc = torch.load(checkpoint, map_location=loc)
+        loc = torch.load(checkpoint)
+
+        with gzip.open(checkpoint, 'rb') as f:
+            train_set = cPickle.load(f)
+            valid_set = cPickle.load(f)
+            test_set = cPickle.load(f)
+        net.load_state_dict(torch.load("./external/ResNet50_IN/checkpoints/resnet50_in_12cbackup/checkpoint.pth.tar"))
     else:
         print("loading torchvision model for inversion with the name: {}".format(args.arch_name))
         net = models.__dict__[args.arch_name](pretrained=True)
+    
+    ResNet
 
     net = net.to(device)
 
@@ -168,7 +189,8 @@ def run(args):
                                              criterion=criterion,
                                              coefficients = coefficients,
                                              network_output_function = network_output_function,
-                                             hook_for_display = hook_for_display)
+                                             hook_for_display = hook_for_display,
+                                             opt=args)
     net_student=None
     if args.adi_scale != 0:
         net_student = net_verifier
@@ -202,8 +224,12 @@ def main():
     parser.add_argument('--tv_l2', type=float, default=0.0001, help='coefficient for total variation L2 loss')
     parser.add_argument('--lr', type=float, default=0.2, help='learning rate for optimization')
     parser.add_argument('--l2', type=float, default=0.00001, help='l2 loss on the image')
+    parser.add_argument('--biggan_d_scale', type=float, default=0.1, help='biggan_D_loss')
     parser.add_argument('--main_loss_multiplier', type=float, default=1.0, help='coefficient for the main loss in optimization')
     parser.add_argument('--store_best_images', action='store_true', help='save best images as separate files')
+
+    parser.add_argument('--biggan_d_prior', action='store_true', help='if specified, use BigGAN discriminator prior')
+    parser.add_argument('--biggan_g_prior', action='store_true', help='if specified, use BigGAN generator prior')
 
     args = parser.parse_args()
     print(args)
@@ -214,3 +240,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

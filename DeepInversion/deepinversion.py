@@ -11,6 +11,7 @@ from __future__ import division, print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
+from numpy.lib import utils
 
 import torch
 import torch.nn as nn
@@ -22,9 +23,21 @@ import torch
 import torchvision.utils as vutils
 from PIL import Image
 import numpy as np
+from torch.nn import ReLU
 
-from utils.utils import lr_cosine_policy, lr_policy, beta_policy, mom_cosine_policy, clip, denormalize, create_folder
+from utils.utils import lr_cosine_policy, lr_policy, beta_policy, mom_cosine_policy, clip, denormalize, create_folder, gan_normalization
 
+# from external.ResNet50_IN.
+import sys
+sys.path.insert(0,'external/BigGANPyTorch')
+
+from BigGAN import Generator as G_biggan
+from BigGAN import Discriminator as D_biggan
+import utils_biggan
+
+# from external.BigGANPyTorch.BigGAN import Generator as G_biggan
+# from external.BigGANPyTorch.BigGAN import Discriminator as D_biggan
+# import external.BigGANPyTorch.utils as utils_biggan
 
 class DeepInversionFeatureHook():
     '''
@@ -76,7 +89,8 @@ class DeepInversionClass(object):
                  criterion=None,
                  coefficients=dict(),
                  network_output_function=lambda x: x,
-                 hook_for_display = None):
+                 hook_for_display = None,
+                 opt=None):
         '''
         :param bs: batch size per GPU for image generation
         :param use_fp16: use FP16 (or APEX AMP) for model inversion, uses less memory and is faster for GPUs with Tensor Cores
@@ -106,6 +120,8 @@ class DeepInversionClass(object):
         network_output_function: function to be applied to the output of the network to get the output
         hook_for_display: function to be executed at every print/save call, useful to check accuracy of verifier
         '''
+
+        self.opt=opt
 
         print("Deep inversion class generation")
         # for reproducibility
@@ -176,6 +192,21 @@ class DeepInversionClass(object):
         if hook_for_display is not None:
             self.hook_for_display = hook_for_display
 
+        ## biggan discriminator model
+        if self.opt.biggan_d_prior:
+            config_fixed = {'dataset': 'I128_hdf5', 'augment': False, 'num_workers': 0, 'pin_memory': True, 'shuffle': True, 'load_in_mem': False, 'use_multiepoch_sampler': True, 'model': 'BigGAN', 'G_param': 'SN', 'D_param': 'SN', 'G_ch': 96, 'D_ch': 96, 'G_depth': 1, 'D_depth': 1, 'D_wide': True, 'G_shared': True, 'shared_dim': 128, 'dim_z': 120, 'z_var': 1.0, 'hier': True, 'cross_replica': False, 'mybn': False, 'G_nl': 'inplace_relu', 'D_nl': 'inplace_relu', 'G_attn': '64', 'D_attn': '64', 'norm_style': 'bn', 'seed': 0, 'G_init': 'ortho', 'D_init': 'ortho', 'skip_init': True, 'G_lr': 0.0001, 'D_lr': 0.0004, 'G_B1': 0.0, 'D_B1': 0.0, 'G_B2': 0.999, 'D_B2': 0.999, 'batch_size': 256, 'G_batch_size': 64, 'num_G_accumulations': 8, 'num_D_steps': 1, 'num_D_accumulations': 8, 'split_D': False, 'num_epochs': 100, 'parallel': True, 'G_fp16': False, 'D_fp16': False, 'D_mixed_precision': False, 'G_mixed_precision': False, 'accumulate_stats': False, 'num_standing_accumulations': 16, 'G_eval_mode': True, 'save_every': 1000, 'num_save_copies': 2, 'num_best_copies': 5, 'which_best': 'IS', 'no_fid': False, 'test_every': 2000, 'num_inception_images': 50000, 'hashname': False, 'base_root': '', 'data_root': 'data', 'weights_root': 'weights', 'logs_root': 'logs', 'samples_root': 'samples', 'pbar': 'mine', 'name_suffix': '', 'experiment_name': '', 'config_from_name': False, 'ema': True, 'ema_decay': 0.9999, 'use_ema': True, 'ema_start': 20000, 'adam_eps': 1e-06, 'BN_eps': 1e-05, 'SN_eps': 1e-06, 'num_G_SVs': 1, 'num_D_SVs': 1, 'num_G_SV_itrs': 1, 'num_D_SV_itrs': 1, 'G_ortho': 0.0, 'D_ortho': 0.0, 'toggle_grads': True, 'which_train_fn': 'GAN', 'load_weights': '', 'resume': False, 'logstyle': '%3.3e', 'log_G_spectra': False, 'log_D_spectra': False, 'sv_log_interval': 10, 'sample_npz': True, 'sample_num_npz': 50000, 'sample_sheets': True, 'sample_interps': True, 'sample_sheet_folder_num': -1, 'sample_random': True, 'sample_trunc_curves': '0.05_0.05_1.0', 'sample_inception_metrics': True, 'resolution': 128, 'n_classes': 1000, 'G_activation': ReLU(inplace=True), 'D_activation': ReLU(inplace=True), 'no_optim': True}
+            # state_dict = {'itr': 0, 'epoch': 0, 'save_num': 0, 'save_best_num': 0, 'best_IS': 0, 'best_FID': 999999, 'config': config}
+            state_dict = {'itr': 0, 'epoch': 0, 'save_num': 0, 'save_best_num': 0, 'best_IS': 0, 'best_FID': 999999}
+            weights_root = './external/BigGANPyTorch/weights'
+            experiment_name = 'BigGAN_ch96_bs256x8_138k'
+            load_weights = ''
+            print('laod biggan D...')
+            self.biggan_D = D_biggan(**config_fixed).cuda()
+            utils_biggan.load_weights(None, self.biggan_D, state_dict, 
+                     weights_root, experiment_name, '',
+                     None,
+                     strict=False, load_optim=False)
+
     def get_images(self, net_student=None, targets=None):
         print("get_images call")
 
@@ -199,7 +230,11 @@ class DeepInversionClass(object):
                            325, 340, 360, 386, 402, 403, 409, 530, 440, 468, 417, 590, 670, 817, 762, 920, 949, 963,
                            967, 574, 487]
 
-                targets = torch.LongTensor(targets * (int(self.bs / len(targets)))).to('cuda')
+                assert self.bs<len(targets) or (len(targets)%self.bs)==0
+                if self.bs<len(targets):
+                    targets = torch.LongTensor(targets[0:self.bs]).to('cuda')
+                else:
+                    targets = torch.LongTensor(targets * (int(self.bs / len(targets)))).to('cuda')
 
         img_original = self.image_resolution
 
@@ -207,6 +242,7 @@ class DeepInversionClass(object):
         inputs = torch.randn((self.bs, 3, img_original, img_original), requires_grad=True, device='cuda',
                              dtype=data_type)
         pooling_function = nn.modules.pooling.AvgPool2d(kernel_size=2)
+        upsample_fucntion = lambda x:torch.nn.functional.interpolate(x, scale_factor=2)
 
         if self.setting_id==0:
             skipfirst = False
@@ -322,6 +358,17 @@ class DeepInversionClass(object):
                            self.var_scale_l1 * loss_var_l1 + \
                            self.bn_reg_scale * loss_r_feature + \
                            self.l2_scale * loss_l2
+
+                # biggan discriminator loss
+                if self.opt.biggan_d_prior:
+                    self.biggan_d_scale = self.opt.biggan_d_scale
+                    input_jit_gan_norm = gan_normalization(inputs_jit)
+                    if lower_res==2:
+                        loss_bigganD = self.biggan_D(upsample_fucntion(input_jit_gan_norm), targets)
+                    else:
+                        loss_bigganD = self.biggan_D(input_jit_gan_norm, targets)
+
+                    loss_aux += self.opt.biggan_d_scale * torch.sum(loss_bigganD)
 
                 if self.adi_scale!=0.0:
                     loss_aux += self.adi_scale * loss_verifier_cig
