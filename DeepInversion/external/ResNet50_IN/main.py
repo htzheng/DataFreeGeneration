@@ -252,7 +252,7 @@ def main_worker(gpu, ngpus_per_node, args):
         num_workers=args.workers, pin_memory=True)
 
     if args.evaluate:
-        validate(val_loader, model, criterion, args)
+        validate(val_loader, model, criterion, args, max_iter=10)
         return
 
     for epoch in range(args.start_epoch, args.epochs):
@@ -359,7 +359,7 @@ def validate(val_loader, model, criterion, args, max_iter=None):
         for i, (images, target) in enumerate(val_loader):
             if max_iter is not None and i==max_iter:
                 break
-            
+
             if args.gpu is not None:
                 images = images.cuda(args.gpu, non_blocking=True)
             if torch.cuda.is_available():
