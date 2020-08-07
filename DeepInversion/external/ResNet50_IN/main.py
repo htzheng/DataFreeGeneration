@@ -264,7 +264,7 @@ def main_worker(gpu, ngpus_per_node, args):
         train(train_loader, model, criterion, optimizer, epoch, args, max_iter=100)
 
         # evaluate on validation set
-        acc1 = validate(val_loader, model, criterion, args)
+        acc1 = validate(val_loader, model, criterion, args, max_iter=100)
 
         # remember best acc@1 and save checkpoint
         is_best = acc1 > best_acc1
@@ -341,7 +341,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args, max_iter=None)
             progress.display(i)
 
 
-def validate(val_loader, model, criterion, args):
+def validate(val_loader, model, criterion, args, max_iter=None):
     batch_time = AverageMeter('Time', ':6.3f')
     losses = AverageMeter('Loss', ':.4e')
     top1 = AverageMeter('Acc@1', ':6.2f')
@@ -357,6 +357,9 @@ def validate(val_loader, model, criterion, args):
     with torch.no_grad():
         end = time.time()
         for i, (images, target) in enumerate(val_loader):
+            if max_iter is not None and i==max_iter:
+                break
+            
             if args.gpu is not None:
                 images = images.cuda(args.gpu, non_blocking=True)
             if torch.cuda.is_available():
