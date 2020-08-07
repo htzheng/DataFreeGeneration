@@ -1,21 +1,10 @@
 # checkpoint and results
-external/*
-datasets/*
-results/*
-results_cvpr/*
-checkpoints/*
-checkpoints_backup/*
-temp/*
-scripts/ECCV_user_study/*
-scripts/matlab/TRAIN.mat
-scripts/Compare_results/*
-scripts/experiment/*
-scripts/matlab/*
-
-ResNet50_IN/checkpoints/*
-DeepInversion/checkpoints/*
+DeepInversion/example_logs/*
+DeepInversion/final_images/*
+DeepInversion/generations/*
+DeepInversion/external/ResNet50_IN/checkpoints/*
+DeepInversion/external/BigGAN-PyTorch/weights/*
 !*/.gitkeep
-
 
 
 .idea/
