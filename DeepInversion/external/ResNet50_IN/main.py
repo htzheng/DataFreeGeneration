@@ -118,7 +118,7 @@ def main():
 
 
 def main_worker(gpu, ngpus_per_node, args):
-    max_iter = 10000000000 if args.debug else 100
+    max_iter = 100 if args.debug else 10000000000
     save_path = os.path.join('./checkpoints', args.arch)
     if not os.path.exists(save_path):
         os.makedirs(save_path)
