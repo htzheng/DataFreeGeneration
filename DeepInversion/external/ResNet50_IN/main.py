@@ -118,7 +118,8 @@ def main():
 
 
 def main_worker(gpu, ngpus_per_node, args):
-    max_iter = 100 if args.debug else 10000000000
+    max_iter = 10 if args.debug else None
+
     save_path = os.path.join('./checkpoints', args.arch)
     if not os.path.exists(save_path):
         os.makedirs(save_path)
@@ -254,7 +255,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     if args.evaluate:
         # validate(val_loader, model, criterion, args)
-        validate(val_loader, model, criterion, args, max_iter=max_iter//10)
+        validate(val_loader, model, criterion, args, max_iter=max_iter)
         return
 
     for epoch in range(args.start_epoch, args.epochs):
@@ -268,7 +269,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
         # evaluate on validation set
         # acc1 = validate(val_loader, model, criterion, args)
-        acc1 = validate(val_loader, model, criterion, args, max_iter=max_iter//10)
+        acc1 = validate(val_loader, model, criterion, args, max_iter=max_iter)
 
         # remember best acc@1 and save checkpoint
         is_best = acc1 > best_acc1
@@ -311,7 +312,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args, max_iter=None)
 
     end = time.time()
     for i, (images, target) in enumerate(train_loader):
-        if max_iter is not None and i%max_iter==0:
+        if max_iter is not None and ((i+1)%max_iter==0):
             print('warning: maxiter', max_iter,'reached...')
             break
 
@@ -362,8 +363,7 @@ def validate(val_loader, model, criterion, args, max_iter=None):
     with torch.no_grad():
         end = time.time()
         for i, (images, target) in enumerate(val_loader):
-            print(i, max_iter)
-            if max_iter is not None and i==max_iter:
+            if max_iter is not None and ((i+1)%max_iter==0):
                 break
 
             if args.gpu is not None:

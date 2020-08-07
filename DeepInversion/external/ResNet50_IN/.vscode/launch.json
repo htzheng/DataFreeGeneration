@@ -24,7 +24,7 @@
                 "--arch", "resnet50_in",
                 "--batch-size", "2",
                 // "--resume", "checkpoints/resnet50_in_12cbackup/model_best.pth.tar"
-                "--debug",
+                // "--debug",
             ]
         }
     ]
