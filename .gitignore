@@ -1,4 +1,5 @@
 # checkpoint and results
+datasets/*
 DeepInversion/example_logs/*
 DeepInversion/final_images/*
 DeepInversion/generations/*
