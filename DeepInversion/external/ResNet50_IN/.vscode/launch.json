@@ -10,6 +10,7 @@
             "request": "launch",
             // "program": "train_resnet_in.py",
             "program": "main.py",
+            // "program": "main_save.py",
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "args": [
@@ -19,8 +20,10 @@
                 "--gpu", "0",
                 "--pretrained",
                 // "--arch", "resnet50"
+                // "--arch", "resnet50_in",
                 "--arch", "resnet50_in",
-                "--batch-size", "64"
+                "--batch-size", "2",
+                // "--resume", "checkpoints/resnet50_in_12cbackup/model_best.pth.tar"
             ]
         }
     ]

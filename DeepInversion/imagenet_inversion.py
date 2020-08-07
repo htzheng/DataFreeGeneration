@@ -68,18 +68,7 @@ def run(args):
         from models.resnetv15 import build_resnet
         net = build_resnet("resnet50", "classic")
     elif args.arch_name == 'resnet50_in':
-        import pickle
-        print("load resnet_in model")
-        net = resnet50_in()
-        loc = 'cuda:{}'.format(0)
-        checkpoint = "./external/ResNet50_IN/checkpoints/resnet50_in_12cbackup/model_best.pth.tar"
-        loc = torch.load(checkpoint, map_location=loc)
-        loc = torch.load(checkpoint)
-
-        with gzip.open(checkpoint, 'rb') as f:
-            train_set = cPickle.load(f)
-            valid_set = cPickle.load(f)
-            test_set = cPickle.load(f)
+        checkpoint = "./external/ResNet50_IN/checkpoints/resnet50_in/model_best.pth"
         net.load_state_dict(torch.load("./external/ResNet50_IN/checkpoints/resnet50_in_12cbackup/checkpoint.pth.tar"))
     else:
         print("loading torchvision model for inversion with the name: {}".format(args.arch_name))
