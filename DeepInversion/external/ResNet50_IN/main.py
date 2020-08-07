@@ -78,7 +78,7 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'N processes per node, which has N GPUs. This is the '
                          'fastest way to use PyTorch for either single node or '
                          'multi node data parallel training')
-
+parser.add_argument('--debug', action='store_true', help='debug')
 best_acc1 = 0
 
 
@@ -118,6 +118,7 @@ def main():
 
 
 def main_worker(gpu, ngpus_per_node, args):
+    max_iter = 10000000000 if args.debug else 100
     save_path = os.path.join('./checkpoints', args.arch)
     if not os.path.exists(save_path):
         os.makedirs(save_path)
@@ -252,8 +253,8 @@ def main_worker(gpu, ngpus_per_node, args):
         num_workers=args.workers, pin_memory=True)
 
     if args.evaluate:
-        validate(val_loader, model, criterion, args)
-        # validate(val_loader, model, criterion, args, max_iter=10)
+        # validate(val_loader, model, criterion, args)
+        validate(val_loader, model, criterion, args, max_iter=max_iter//10)
         return
 
     for epoch in range(args.start_epoch, args.epochs):
@@ -262,12 +263,12 @@ def main_worker(gpu, ngpus_per_node, args):
         adjust_learning_rate(optimizer, epoch, args)
 
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch, args)
-        # train(train_loader, model, criterion, optimizer, epoch, args, max_iter=10)
+        # train(train_loader, model, criterion, optimizer, epoch, args)
+        train(train_loader, model, criterion, optimizer, epoch, args, max_iter=max_iter)
 
         # evaluate on validation set
-        acc1 = validate(val_loader, model, criterion, args)
-        # acc1 = validate(val_loader, model, criterion, args, max_iter=10)
+        # acc1 = validate(val_loader, model, criterion, args)
+        acc1 = validate(val_loader, model, criterion, args, max_iter=max_iter//10)
 
         # remember best acc@1 and save checkpoint
         is_best = acc1 > best_acc1
@@ -282,6 +283,7 @@ def main_worker(gpu, ngpus_per_node, args):
             #     'best_acc1': best_acc1,
             #     'optimizer' : optimizer.state_dict(),
             # }, is_best, root=save_path)
+            print('saving checkpoints')
             save_checkpoint_simple(model.state_dict(), is_best, root=save_path)
 
 
