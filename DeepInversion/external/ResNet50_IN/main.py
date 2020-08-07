@@ -362,6 +362,7 @@ def validate(val_loader, model, criterion, args, max_iter=None):
     with torch.no_grad():
         end = time.time()
         for i, (images, target) in enumerate(val_loader):
+            print(i, max_iter)
             if max_iter is not None and i==max_iter:
                 break
 
