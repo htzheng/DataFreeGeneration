@@ -36,7 +36,7 @@ def norm2d(planes, num_channels_per_group=32):
     
     if True:
         print('user InstanceNorm2d')
-        return nn.InstanceNorm2d(planes)
+        return nn.InstanceNorm2d(planes, affine=True, track_running_stats=True)
         # return GroupNorm2d(planes, num_channels_per_group, affine=True,
         #                    track_running_stats=False)
     else:

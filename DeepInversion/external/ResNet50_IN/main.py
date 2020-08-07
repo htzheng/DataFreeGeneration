@@ -252,7 +252,8 @@ def main_worker(gpu, ngpus_per_node, args):
         num_workers=args.workers, pin_memory=True)
 
     if args.evaluate:
-        validate(val_loader, model, criterion, args, max_iter=10)
+        validate(val_loader, model, criterion, args)
+        # validate(val_loader, model, criterion, args, max_iter=10)
         return
 
     for epoch in range(args.start_epoch, args.epochs):
@@ -261,10 +262,12 @@ def main_worker(gpu, ngpus_per_node, args):
         adjust_learning_rate(optimizer, epoch, args)
 
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch, args, max_iter=10)
+        train(train_loader, model, criterion, optimizer, epoch, args)
+        # train(train_loader, model, criterion, optimizer, epoch, args, max_iter=10)
 
         # evaluate on validation set
-        acc1 = validate(val_loader, model, criterion, args, max_iter=10)
+        acc1 = validate(val_loader, model, criterion, args)
+        # acc1 = validate(val_loader, model, criterion, args, max_iter=10)
 
         # remember best acc@1 and save checkpoint
         is_best = acc1 > best_acc1

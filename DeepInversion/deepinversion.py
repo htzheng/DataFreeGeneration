@@ -65,6 +65,32 @@ class DeepInversionFeatureHook():
         self.hook.remove()
 
 
+class DeepInversionFeatureHook_InstanceNormalization():
+    '''
+    Implementation of the forward hook to track feature statistics and compute a loss on them.
+    Will compute mean and variance, and will use l2 as a loss
+    '''
+    def __init__(self, module):
+        self.hook = module.register_forward_hook(self.hook_fn)
+
+    def hook_fn(self, module, input, output):
+        # hook co compute deepinversion's feature distribution regularization
+        nch = input[0].shape[1]
+        mean = input[0].mean([0, 2, 3])
+        var = input[0].permute(1, 0, 2, 3).contiguous().view([nch, -1]).var(1, unbiased=False)
+
+        #forcing mean and variance to match between two distributions
+        #other ways might work better, i.g. KL divergence
+        r_feature = torch.norm(module.running_var.data - var, 2) + torch.norm(
+            module.running_mean.data - mean, 2)
+
+        self.r_feature = r_feature
+        # must have no output
+
+    def close(self):
+        self.hook.remove()
+
+
 def get_image_prior_losses(inputs_jit):
     # COMPUTE total variation regularization loss
     diff1 = inputs_jit[:, :, :, :-1] - inputs_jit[:, :, :, 1:]
@@ -184,9 +210,12 @@ class DeepInversionClass(object):
         ## Create hooks for feature statistics
         self.loss_r_feature_layers = []
 
+        ## bn layer hook
         for module in self.net_teacher.modules():
             if isinstance(module, nn.BatchNorm2d):
                 self.loss_r_feature_layers.append(DeepInversionFeatureHook(module))
+            if isinstance(module, nn.InstanceNorm2d):
+                self.loss_r_feature_layers.append(DeepInversionFeatureHook_InstanceNormalization(module))
 
         self.hook_for_display = None
         if hook_for_display is not None:

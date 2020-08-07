@@ -68,13 +68,13 @@ def run(args):
         from models.resnetv15 import build_resnet
         net = build_resnet("resnet50", "classic")
     elif args.arch_name == 'resnet50_in':
-        checkpoint = "./external/ResNet50_IN/checkpoints/resnet50_in/model_best.pth"
-        net.load_state_dict(torch.load("./external/ResNet50_IN/checkpoints/resnet50_in_12cbackup/checkpoint.pth.tar"))
+        net = resnet50_in()
+        # checkpoint = "./external/ResNet50_IN/checkpoints/resnet50_in/model_best.pth"
+        checkpoint = "./external/ResNet50_IN/checkpoints/resnet50_in/checkpoint.pth"
+        net.load_state_dict(torch.load(checkpoint))
     else:
         print("loading torchvision model for inversion with the name: {}".format(args.arch_name))
         net = models.__dict__[args.arch_name](pretrained=True)
-    
-    ResNet
 
     net = net.to(device)
 
